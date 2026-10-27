@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorama Clínico: Antidepresivos & Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        /* Custom scrollbar for leaderboard */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(45, 212, 191, 0.4); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(45, 212, 191, 0.7); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 min-h-screen text-slate-100 flex flex-col justify-between p-3 md:p-6">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+        <div>
+            <div class="flex items-center gap-2 justify-center md:justify-start">
+                <span class="text-3xl">🧠</span>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-cyan-300 to-sky-400">
+                    Memorama Clínico: Antidepresivos
+                </h1>
+            </div>
+            <p class="text-slate-400 text-xs md:text-sm text-center md:text-left mt-1">
+                Repaso farmacológico interactivo y tabla de clasificación en vivo.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button id="btn-leaderboard" onclick="openLeaderboardModal()" class="flex items-center gap-2 bg-indigo-900/60 hover:bg-indigo-800/80 text-cyan-300 border border-cyan-500/30 font-medium px-4 py-2 rounded-xl transition text-sm backdrop-blur-md shadow-md">
+                <span>🏆</span> Ver Ranking
+            </button>
+            <button id="btn-user-info" onclick="openRegisterModal(true)" class="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/40 font-medium px-4 py-2 rounded-xl transition text-sm backdrop-blur-md">
+                <span id="user-display-icon">👤</span>
+                <span id="user-display-name" class="max-w-[120px] truncate">Registrarse</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Game Stats Bar -->
+    <section class="w-full max-w-5xl mx-auto bg-slate-900/80 backdrop-blur-md border border-slate-800 p-4 rounded-2xl shadow-xl mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Jugador</span>
+            <span id="stat-player" class="text-sm md:text-base font-bold text-teal-300 truncate block">Anónimo</span>
+        </div>
+        <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Intentos</span>
+            <span id="moves" class="text-sm md:text-base font-bold text-cyan-300">0</span>
+        </div>
+        <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Parejas</span>
+            <span id="matches" class="text-sm md:text-base font-bold text-emerald-300">0 / 8</span>
+        </div>
+        <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50 flex flex-col justify-center items-center">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Tiempo</span>
+            <span id="timer" class="text-sm md:text-base font-bold text-amber-300">00:00</span>
+        </div>
+    </section>
+
+    <!-- Main Game Board -->
+    <main class="w-full max-w-5xl mx-auto flex-grow flex items-center justify-center my-2">
+        <div id="grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 w-full">
+            <!-- Dynamic cards generation -->
+        </div>
+    </main>
+
+    <!-- Reset / Control Bar -->
+    <div class="w-full max-w-5xl mx-auto flex justify-center mt-6">
+        <button onclick="resetGame()" class="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-slate-950 font-bold px-6 py-3 rounded-xl shadow-lg transition duration-200 transform hover:scale-105 active:scale-95 text-sm md:text-base">
+            <span>🔄</span> Reiniciar Partida
+        </button>
+    </div>
+
+    <!-- Registration / Player Profile Modal -->
+    <div id="modal-register" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-teal-500/30 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl relative">
+            <h2 id="register-title" class="text-2xl font-bold text-teal-300 text-center mb-2">Registro de Jugador</h2>
+            <p class="text-slate-400 text-xs md:text-sm text-center mb-6">
+                Ingresa tu nombre para guardar tus puntuaciones en el ranking global de farmacología.
+            </p>
+
+            <form id="form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nombre Completo o Alias *</label>
+                    <input type="text" id="input-name" required placeholder="Ej: Dr. García / María López" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Correo Electrónico (Opcional)</label>
+                    <input type="email" id="input-email" placeholder="ejemplo@correo.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-400">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition">
+                    Guardar e Iniciar
+                </button>
+            </form>
+            <button onclick="closeRegisterModal()" class="mt-3 w-full text-center text-slate-400 text-xs hover:text-slate-200">
+                Continuar como Anónimo
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="modal-victory" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-teal-500/40 p-6 md:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl">
+            <div class="text-5xl mb-3 animate-bounce">🎉</div>
+            <h2 class="text-2xl font-bold text-teal-300 mb-1">¡Partida Completada!</h2>
+            <p class="text-slate-300 text-xs md:text-sm mb-6">Demostraste un gran dominio de la farmacología de antidepresivos.</p>
+
+            <div class="bg-slate-800/60 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4 border border-slate-700/50">
+                <div>
+                    <p class="text-xs text-slate-400">Intentos Realizados</p>
+                    <p id="final-moves" class="text-xl font-bold text-cyan-300">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400">Tiempo Transcurrido</p>
+                    <p id="final-time" class="text-xl font-bold text-amber-300">00:00</p>
+                </div>
+            </div>
+
+            <div id="save-status" class="text-xs text-cyan-400 mb-4 h-4 font-medium"></div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="resetGame()" class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition">
+                    Jugar de Nuevo
+                </button>
+                <button onclick="openLeaderboardModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold py-2.5 rounded-xl border border-cyan-500/30 transition text-sm">
+                    Ver Tabla de Clasificación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard / Ranking Modal -->
+    <div id="modal-leaderboard" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-cyan-500/30 p-6 rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🏆</span>
+                    <h2 class="text-xl font-bold text-teal-300">Tabla de Clasificación</h2>
+                </div>
+                <button onclick="closeLeaderboardModal()" class="text-slate-400 hover:text-slate-100 text-xl font-bold p-1">
+                    ✕
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 mb-4">
+                Mejores tiempos e intentos guardados en la nube (ordenados por eficiencia).
+            </p>
+
+            <!-- Leaderboard List -->
+            <div class="overflow-y-auto flex-grow pr-1 mb-4">
+                <table class="w-full text-left text-xs md:text-sm">
+                    <thead class="bg-slate-800/80 text-slate-400 text-xs uppercase tracking-wider sticky top-0">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">Pos</th>
+                            <th class="p-3">Jugador</th>
+                            <th class="p-3 text-center">Intentos</th>
+                            <th class="p-3 text-center">Tiempo</th>
+                            <th class="p-3 rounded-r-lg text-right">Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="divide-y divide-slate-800/60">
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-slate-500">Cargando puntuaciones...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end">
+                <button onclick="closeLeaderboardModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-5 py-2.5 rounded-xl font-semibold transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-6 text-center text-xs text-slate-500">
+        Herramienta educativa de revisión clínica sobre Psicofármacos & Antidepresivos.
+    </footer>
+
+    <!-- Firebase Script Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration & Global Variables setup
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'antidepresivos-memorama';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        // Authenticate User
+        async function authenticate() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn("Error durante la autenticación de Firebase:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadLeaderboard();
+            }
+        });
+
+        // Initialize Auth
+        authenticate();
+
+        // Save Score to Firestore (Rule 1 & Rule 2 compliant path)
+        window.saveGameScore = async function(playerData) {
+            if (!currentUser) return false;
+
+            try {
+                const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                await addDoc(scoresCol, {
+                    playerName: playerData.name || 'Anónimo',
+                    email: playerData.email || '',
+                    moves: playerData.moves,
+                    timeSeconds: playerData.timeSeconds,
+                    timeFormatted: playerData.timeFormatted,
+                    timestamp: new Date().toISOString(),
+                    userId: currentUser.uid
+                });
+                await loadLeaderboard();
+                return true;
+            } catch (error) {
+                console.error("Error guardando puntaje en Firestore:", error);
+                return false;
+            }
+        };
+
+        // Fetch Leaderboard Records (In-memory sorting per Rule 2)
+        window.loadLeaderboard = async function() {
+            const leaderboardBody = document.getElementById('leaderboard-body');
+            if (!currentUser) {
+                leaderboardBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500">Conectando con el servidor...</td></tr>`;
+                return;
+            }
+
+            try {
+                const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                const snapshot = await getDocs(scoresCol);
+                let scores = [];
+
+                snapshot.forEach(doc => {
+                    scores.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Rule 2: Sort in JavaScript Memory (Efficiency: lowest moves, then lowest time)
+                scores.sort((a, b) => {
+                    if (a.moves !== b.moves) {
+                        return a.moves - b.moves;
+                    }
+                    return a.timeSeconds - b.timeSeconds;
+                });
+
+                if (scores.length === 0) {
+                    leaderboardBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-500">No hay puntuaciones registradas aún. ¡Sé el primero!</td></tr>`;
+                    return;
+                }
+
+                leaderboardBody.innerHTML = scores.map((item, index) => {
+                    let rankBadge = `${index + 1}`;
+                    if (index === 0) rankBadge = '🥇';
+                    else if (index === 1) rankBadge = '🥈';
+                    else if (index === 2) rankBadge = '🥉';
+
+                    const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
+
+                    return `
+                        <tr class="${index % 2 === 0 ? 'bg-slate-800/30' : 'bg-transparent'} hover:bg-slate-800/60 transition">
+                            <td class="p-3 font-bold text-center">${rankBadge}</td>
+                            <td class="p-3 font-semibold text-slate-200">${escapeHtml(item.playerName)}</td>
+                            <td class="p-3 text-center text-cyan-300 font-medium">${item.moves}</td>
+                            <td class="p-3 text-center text-amber-300 font-medium">${item.timeFormatted}</td>
+                            <td class="p-3 text-right text-slate-500 text-xs">${dateStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Error al cargar la tabla de clasificación:", err);
+                leaderboardBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-rose-400">Error al cargar datos.</td></tr>`;
+            }
+        };
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+
+    <!-- Game Engine Logic -->
+    <script>
+        // Clinical matching pairs from Antidepresivos presentation
+        const cardData = [
+            { id: 1, text: 'Amitriptilina' },
+            { id: 1, text: 'Tricíclico / Sedante intenso' },
+            { id: 2, text: 'Fluoxetina' },
+            { id: 2, text: 'ISRS / Estimulante ligero' },
+            { id: 3, text: 'Mirtazapina' },
+            { id: 3, text: 'NaSSA / Antagonista H1 y α2' },
+            { id: 4, text: 'Litio' },
+            { id: 4, text: 'Estabilizador / Metal alcalino' },
+            { id: 5, text: 'Tranilcipromina' },
+            { id: 5, text: 'IMAO no selectivo' },
+            { id: 6, text: 'Trazodona' },
+            { id: 6, text: 'Modulador 5HT / Priapismo' },
+            { id: 7, text: 'Carbamazepina' },
+            { id: 7, text: 'Antiepiléptico / Canales Na⁺' },
+            { id: 8, text: 'Venlafaxina' },
+            { id: 8, text: 'IDRS / IRSN Dual' }
+        ];
+
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let timer = 0;
+        let timerInterval = null;
+        let isLocked = false;
+
+        let playerProfile = {
+            name: '',
+            email: ''
+        };
+
+        // DOM Element references
+        const grid = document.getElementById('grid');
+        const movesDisplay = document.getElementById('moves');
+        const matchesDisplay = document.getElementById('matches');
+        const timerDisplay = document.getElementById('timer');
+
+        const modalRegister = document.getElementById('modal-register');
+        const modalVictory = document.getElementById('modal-victory');
+        const modalLeaderboard = document.getElementById('modal-leaderboard');
+
+        const finalMoves = document.getElementById('final-moves');
+        const finalTime = document.getElementById('final-time');
+        const saveStatus = document.getElementById('save-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const statPlayer = document.getElementById('stat-player');
+
+        function startGame() {
+            grid.innerHTML = '';
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            timer = 0;
+            isLocked = false;
+
+            movesDisplay.textContent = moves;
+            matchesDisplay.textContent = `0 / ${cardData.length / 2}`;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerDisplay.textContent = "00:00";
+
+            // Prepare and shuffle cards
+            cards = [...cardData]
+                .sort(() => Math.random() - 0.5)
+                .map((card, index) => ({ ...card, uniqueId: index }));
+
+            cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('perspective-1000', 'h-28', 'sm:h-32', 'cursor-pointer');
+                cardElement.dataset.id = card.id;
+                cardElement.dataset.uniqueId = card.uniqueId;
+
+                cardElement.innerHTML = `
+                    <div class="relative w-full h-full duration-500 transform-style-3d card-inner rounded-2xl shadow-lg border border-slate-700/50">
+                        <!-- Front Face (Hidden state) -->
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl flex flex-col items-center justify-center backface-hidden border border-slate-700/60 shadow-inner group hover:border-teal-400/50 transition">
+                            <span class="text-2xl md:text-3xl">💊</span>
+                            <span class="text-[10px] text-slate-500 font-semibold tracking-widest mt-1">FARMA</span>
+                        </div>
+                        <!-- Back Face (Revealed State) -->
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-teal-900/90 to-cyan-950/90 border border-teal-400/50 rounded-2xl flex items-center justify-center backface-hidden rotate-y-180 p-2.5 text-center text-xs md:text-sm font-semibold text-slate-100 shadow-xl">
+                            ${card.text}
+                        </div>
+                    </div>
+                `;
+
+                cardElement.addEventListener('click', () => flipCard(cardElement, card));
+                grid.appendChild(cardElement);
+            });
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+            timerInterval = setInterval(() => {
+                timer++;
+                let mins = Math.floor(timer / 60).toString().padStart(2, '0');
+                let secs = (timer % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function flipCard(element, card) {
+            if (isLocked) return;
+            if (element.classList.contains('flipped')) return;
+            if (flippedCards.length === 1 && flippedCards[0].uniqueId === card.uniqueId) return;
+
+            startTimer();
+            element.querySelector('.card-inner').classList.add('rotate-y-180');
+            element.classList.add('flipped');
+            flippedCards.push({ element, ...card });
+
+            if (flippedCards.length === 2) {
+                moves++;
+                movesDisplay.textContent = moves;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+
+            if (card1.id === card2.id) {
+                matchedPairs++;
+                matchesDisplay.textContent = `${matchedPairs} / ${cardData.length / 2}`;
+                
+                // Visual effect for match
+                card1.element.classList.add('opacity-90');
+                card2.element.classList.add('opacity-90');
+                flippedCards = [];
+
+                if (matchedPairs === cardData.length / 2) {
+                    clearInterval(timerInterval);
+                    setTimeout(handleVictory, 500);
+                }
+            } else {
+                isLocked = true;
+                setTimeout(() => {
+                    card1.element.querySelector('.card-inner').classList.remove('rotate-y-180');
+                    card1.element.classList.remove('flipped');
+                    card2.element.querySelector('.card-inner').classList.remove('rotate-y-180');
+                    card2.element.classList.remove('flipped');
+                    flippedCards = [];
+                    isLocked = false;
+                }, 1000);
+            }
+        }
+
+        async function handleVictory() {
+            finalMoves.textContent = moves;
+            finalTime.textContent = timerDisplay.textContent;
+            saveStatus.textContent = "Guardando resultado en el ranking...";
+
+            modalVictory.classList.remove('hidden');
+            modalVictory.classList.add('flex');
+
+            // Save to Firebase
+            if (window.saveGameScore) {
+                const saved = await window.saveGameScore({
+                    name: playerProfile.name || 'Jugador Anónimo',
+                    email: playerProfile.email,
+                    moves: moves,
+                    timeSeconds: timer,
+                    timeFormatted: timerDisplay.textContent
+                });
+
+                if (saved) {
+                    saveStatus.textContent = "✓ ¡Puntuación guardada con éxito!";
+                } else {
+                    saveStatus.textContent = "Puntuación no guardada (Modo fuera de línea).";
+                }
+            }
+        }
+
+        function handleRegisterSubmit(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('input-name').value.trim();
+            const emailInput = document.getElementById('input-email').value.trim();
+
+            if (nameInput) {
+                playerProfile.name = nameInput;
+                playerProfile.email = emailInput;
+
+                userDisplayName.textContent = nameInput;
+                statPlayer.textContent = nameInput;
+                closeRegisterModal();
+            }
+        }
+
+        function openRegisterModal(isManual = false) {
+            if (playerProfile.name) {
+                document.getElementById('input-name').value = playerProfile.name;
+                document.getElementById('input-email').value = playerProfile.email || '';
+            }
+            modalRegister.classList.remove('hidden');
+            modalRegister.classList.add('flex');
+        }
+
+        function closeRegisterModal() {
+            modalRegister.classList.add('hidden');
+            modalRegister.classList.remove('flex');
+        }
+
+        function openLeaderboardModal() {
+            if (window.loadLeaderboard) window.loadLeaderboard();
+            modalLeaderboard.classList.remove('hidden');
+            modalLeaderboard.classList.add('flex');
+        }
+
+        function closeLeaderboardModal() {
+            modalLeaderboard.classList.add('hidden');
+            modalLeaderboard.classList.remove('flex');
+        }
+
+        function resetGame() {
+            modalVictory.classList.add('hidden');
+            modalVictory.classList.remove('flex');
+            startGame();
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            startGame();
+        };
+    </script>
+</body>
+</html>
+```eof
+
+### Key Updates & Capabilities:
+1. **Firebase Integration:** Built with Firebase Firestore to record names, scores, number of moves, and completion times using the standard `/artifacts/{appId}/public/data/scores` path.
+2. **Leaderboard:** Includes a leaderboard modal that lists players ordered by performance (fewer moves, then lower times).
+3. **Player Identification:** Allows players to register their name/alias and email before playing or at any point during their session.
+4. **Clinical Pairs Included:**
+   - *Amitriptilina* — Tricíclico / Sedante intenso
+   - *Fluoxetina* — ISRS / Estimulante ligero
+   - *Mirtazapina* — NaSSA / Antagonista H1 y α2
+   - *Litio* — Estabilizador / Metal alcalino
+   - *Tranilcipromina* — IMAO no selectivo
+   - *Trazodona* — Modulador 5HT / Priapismo
+   - *Carbamazepina* — Antiepiléptico / Canales Na⁺
+   - *Venlafaxina* — IDRS / IRSN Dual
